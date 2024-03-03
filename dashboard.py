@@ -3,7 +3,14 @@ import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
 import numpy as np
-import investpy
+from tessa import price_history
+
+df, currency = price_history("AAPL")
+
+# get the latest 66 days of data
+df = df[-66:]
+
+print(df)
 
 ###
 # DASH APP
@@ -21,5 +28,5 @@ app.layout = html.Div([
 
 ])
 
-if __name__ == '__main__':
-    app.run(debug=True)
+# if __name__ == '__main__':
+#     app.run(debug=True)
