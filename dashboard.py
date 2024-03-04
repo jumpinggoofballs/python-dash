@@ -3,14 +3,13 @@ import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
 import numpy as np
-from tessa import price_history
+from tessa import price_history, search
 
-df, currency = price_history("AAPL")
+index, _ = price_history("^FTSE")
+stock, _ = price_history("AZN")
 
-# get the latest 66 days of data
-df = df[-66:]
 
-print(df)
+print(stock)
 
 ###
 # DASH APP
