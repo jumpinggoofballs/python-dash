@@ -84,24 +84,30 @@ df.columns = ['FTSE', 'AZN']
 # Calculate the relative performance of the stock against the index
 df['AZN/FTSE'] = df['AZN'] / df['FTSE']
 
+# Remove the rows where df['AZN/FTSE'] is NaN - dataset from the API seems incomplete
+df = df.dropna()
+
 # Column which calculates the rolling 3 months high of the relative performance
-# df['R3MH'] = df['AZN/FTSE'].rolling(MONTH*3).max() 
+df['R3MH'] = df['AZN/FTSE'].rolling(MONTH*3).max() 
 
 # Column identifying the dates when the rolling 3 months is touched by the relative performance
-# df['R3MHTouched'] = df['AZN/FTSE'] == df['R3MH']
+df['R3MHTouched'] = df['AZN/FTSE'] == df['R3MH']
+
+# For compatibility with the previous code, convert the index to a column
+df['Dates'] = df.index
 
 # Create an independent list with only the signals - for utility
-# signals = []
-# i = 0
-# while i < len(df):
-#     if df['R3MHTouched'][i] == True:
-#         signals.append(df['Dates'].iloc[i])
-#         i += MONTH*4
-#     else:
-#         i += 1
+signals = []
+i = 0
+while i < len(df):
+    if df['R3MHTouched'][i] == True:
+        signals.append(df['Dates'].iloc[i])
+        i += MONTH*4
+    else:
+        i += 1
 
 
-# print(signals)
+print(signals)
 
 ###
 # DASH APP
