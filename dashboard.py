@@ -197,8 +197,6 @@ def update_graph(clickData):
         x_data = derivedDFs[date].index - derivedDFs[date].index[0]
         x_data = [int(x.days) for x in x_data]
         y_data = derivedDFs[date]['PerformanceNormalised']
-        
-        # TODO: Limit the x-axis to 6 months
 
         trace = go.Scatter(
             x=x_data,
@@ -213,6 +211,7 @@ def update_graph(clickData):
     figure.update_layout(
         xaxis_title='Days after Signal',
         yaxis_title='Normalised Relative Performance',
+        xaxis_range=[0, MONTH*6-1],
     )
     figure.add_vline(x=MONTH-1, annotation_text='1 Month', line_width=1)
     figure.add_vline(x=MONTH*3-1, annotation_text='3 Months', line_width=1)
