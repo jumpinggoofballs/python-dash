@@ -1,4 +1,6 @@
 from dash import Dash, html, dcc, callback, Output, Input, dash_table
+import dash_bootstrap_components as dbc
+from dash_bootstrap_templates import load_figure_template
 import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
@@ -140,15 +142,20 @@ for horizon, item in statsAtHorizons.items():
 # Define the app
 # / With title
 appTitle = 'AstraZeneca share price performance against FTSE 100'
-app = Dash(appTitle)
+app = Dash(
+    appTitle,
+    external_stylesheets=[dbc.themes.FLATLY]
+    )
+load_figure_template('FLATLY')
 
 # Define the layout for the Dash app
 app.layout = html.Div([
 
-    html.H1(children=appTitle, style={'textAlign':'center'}),
+    html.H1(children=appTitle, style={'textAlign':'center', 'margin-top': '40px'}),
 
+    html.Hr(),
     # Graph for the main dataset
-    html.H4(children='Graph 1: Relative performance of AZN/FTSE, 3 months rolling high, and dates where the rolling 3 month high is reached', style={'textAlign':'center'}),
+    html.H4(children='Graph 1: Relative performance of AZN/FTSE, 3 months rolling high, and dates where the rolling 3 month high is reached', style={'textAlign':'center', 'margin-top': '40px'}),
     dcc.Graph(
         id='graph-rolling-3-month-high-and-dates',
         figure=px.line(df, x='Dates', y=['AZN/FTSE', 'R3MH'])
@@ -163,20 +170,25 @@ app.layout = html.Div([
 
     html.H4(children=f'Number of Signals: {len(signals)}', style={'textAlign':'center'}),
 
+    html.Hr(),
     # Graph for the derived dataset - populated by the callback below
-    html.H4(children='Graph 2: Normalised relative performance of AZN/FTSE after each Signal', style={'textAlign':'center'}),
+    html.H4(children='Graph 2: Normalised relative performance of AZN/FTSE after each Signal', style={'textAlign':'center', 'margin-top': '40px'}),
     dcc.Graph(
-        id='graph-post-signal-performance',        
+        id='graph-post-signal-performance',
+        # remove the padding and margin from the graph title area
+
     ),
 
+    html.Hr(),
     # Scatterplot for the distribution of relative performance after each Signal per horizon
-    html.H4(children='Graph 3: Distribution of the normalised relative performance of AZN/FTSE after each Signal, by Horizon', style={'textAlign':'center'}),
+    html.H4(children='Graph 3: Distribution of the normalised relative performance of AZN/FTSE after each Signal, by Horizon', style={'textAlign':'center', 'margin-top': '40px'}),
     dcc.Graph(
         id='graph-distribution-relative-performance'
     ),
 
+    html.Hr(),
     # Table for the statistics per horizon
-    html.H4(children='Table 1: Statistics of the normalised relative performance of AZN/FTSE after each Signal, by Horizon', style={'textAlign':'center'}),
+    html.H4(children='Table 1: Statistics of the normalised relative performance of AZN/FTSE after each Signal, by Horizon', style={'textAlign':'center', 'margin-top': '40px'}),
     dash_table.DataTable(
         id='table-stats-relative-performance',
         columns=[{"name": i, "id": i} for i in [' ', '1 Month', '3 Months', '6 Months']],
@@ -212,6 +224,7 @@ def update_graph(clickData):
         xaxis_title='Days after Signal',
         yaxis_title='Normalised Relative Performance',
         xaxis_range=[0, MONTH*6-1],
+        margin=dict(l=30, r=30, t=30, b=30),
     )
     figure.add_vline(x=MONTH-1, annotation_text='1 Month', line_width=1)
     figure.add_vline(x=MONTH*3-1, annotation_text='3 Months', line_width=1)
@@ -243,6 +256,7 @@ def update_graph(clickData):
     figure.update_layout(
         xaxis_title='Horizon',
         yaxis_title='Normalised Relative Performance',
+        margin=dict(l=30, r=30, t=30, b=30),
     )
 
     return figure
