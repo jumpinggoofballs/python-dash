@@ -247,6 +247,6 @@ def update_graph(clickData):
 
     return figure
 
-
+server = app.server
 if __name__ == '__main__':
     app.run(debug=True)
