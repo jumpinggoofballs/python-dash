@@ -15,6 +15,7 @@ dash-table==5.0.0
 Flask==3.0.2
 fonttools==4.49.0
 frozendict==2.4.0
+gunicorn==21.2.0
 html5lib==1.1
 idna==3.6
 importlib-metadata==7.0.1
