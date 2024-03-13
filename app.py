@@ -1,4 +1,5 @@
 from dash import Dash, html, dcc, callback, Output, Input, dash_table
+import dash_loading_spinners as dls
 import dash_bootstrap_components as dbc
 from dash_bootstrap_templates import load_figure_template
 import plotly.express as px
@@ -143,60 +144,84 @@ for horizon, item in statsAtHorizons.items():
 # / With title
 appTitle = 'AstraZeneca share price performance against FTSE 100'
 app = Dash(
-    appTitle,
-    external_stylesheets=[dbc.themes.FLATLY]
+        appTitle,
+        external_stylesheets=[dbc.themes.FLATLY]
     )
 load_figure_template('FLATLY')
 
 # Define the layout for the Dash app
 app.layout = html.Div([
 
-    html.H1(children=appTitle, style={'textAlign':'center', 'margin-top': '40px'}),
+        html.Div(
+            id="div-loading",
+            children=[
+                dls.Ellipsis(
+                    fullscreen=True, 
+                    id="loading-whole-app"
+                )
+            ]
+        ),
 
-    html.Hr(),
-    # Graph for the main dataset
-    html.H4(children='Graph 1: Relative performance of AZN/FTSE, 3 months rolling high, and dates where the rolling 3 month high is reached', style={'textAlign':'center', 'margin-top': '40px'}),
-    dcc.Graph(
-        id='graph-rolling-3-month-high-and-dates',
-        figure=px.line(df, x='Dates', y=['AZN/FTSE', 'R3MH'])
-                    .add_scatter(
-                        x=df[df['Signals'] == True]['Dates'], 
-                        y=df[df['Signals'] == True]['AZN/FTSE'], 
-                        mode='markers', 
-                        marker=dict(size=12), 
-                        name='Signals'
-                    )
-    ),
+        html.Div(
+            className="div-app",
+            id="div-app",
+            children = [
+                html.H1(children=appTitle, style={'textAlign':'center', 'margin-top': '40px'}),
 
-    html.H4(children=f'Number of Signals: {len(signals)}', style={'textAlign':'center'}),
+                html.Hr(),
+                # Graph for the main dataset
+                html.H4(children='Graph 1: Relative performance of AZN/FTSE, 3 months rolling high, and dates where the rolling 3 month high is reached', style={'textAlign':'center', 'margin-top': '40px'}),
+                dcc.Graph(
+                    id='graph-rolling-3-month-high-and-dates',
+                    figure=px.line(df, x='Dates', y=['AZN/FTSE', 'R3MH'])
+                                .add_scatter(
+                                    x=df[df['Signals'] == True]['Dates'], 
+                                    y=df[df['Signals'] == True]['AZN/FTSE'], 
+                                    mode='markers', 
+                                    marker=dict(size=12), 
+                                    name='Signals'
+                                )
+                ),
 
-    html.Hr(),
-    # Graph for the derived dataset - populated by the callback below
-    html.H4(children='Graph 2: Normalised relative performance of AZN/FTSE after each Signal', style={'textAlign':'center', 'margin-top': '40px'}),
-    dcc.Graph(
-        id='graph-post-signal-performance',
-        # remove the padding and margin from the graph title area
+                html.H4(children=f'Number of Signals: {len(signals)}', style={'textAlign':'center'}),
 
-    ),
+                html.Hr(),
+                # Graph for the derived dataset - populated by the callback below
+                html.H4(children='Graph 2: Normalised relative performance of AZN/FTSE after each Signal', style={'textAlign':'center', 'margin-top': '40px'}),
+                dcc.Graph(
+                    id='graph-post-signal-performance',
+                    # remove the padding and margin from the graph title area
 
-    html.Hr(),
-    # Scatterplot for the distribution of relative performance after each Signal per horizon
-    html.H4(children='Graph 3: Distribution of the normalised relative performance of AZN/FTSE after each Signal, by Horizon', style={'textAlign':'center', 'margin-top': '40px'}),
-    dcc.Graph(
-        id='graph-distribution-relative-performance'
-    ),
+                ),
 
-    html.Hr(),
-    # Table for the statistics per horizon
-    html.H4(children='Table 1: Statistics of the normalised relative performance of AZN/FTSE after each Signal, by Horizon', style={'textAlign':'center', 'margin-top': '40px'}),
-    dash_table.DataTable(
-        id='table-stats-relative-performance',
-        columns=[{"name": i, "id": i} for i in [' ', '1 Month', '3 Months', '6 Months']],
-        data=data_for_stats_table(),
-        style_cell={'textAlign': 'center'},
-        style_table={ 'table-layout': 'fixed' }
-    ),
-])
+                html.Hr(),
+                # Scatterplot for the distribution of relative performance after each Signal per horizon
+                html.H4(children='Graph 3: Distribution of the normalised relative performance of AZN/FTSE after each Signal, by Horizon', style={'textAlign':'center', 'margin-top': '40px'}),
+                dcc.Graph(
+                    id='graph-distribution-relative-performance'
+                ),
+
+                html.Hr(),
+                # Table for the statistics per horizon
+                html.H4(children='Table 1: Statistics of the normalised relative performance of AZN/FTSE after each Signal, by Horizon', style={'textAlign':'center', 'margin-top': '40px'}),
+                dash_table.DataTable(
+                    id='table-stats-relative-performance',
+                    columns=[{"name": i, "id": i} for i in [' ', '1 Month', '3 Months', '6 Months']],
+                    data=data_for_stats_table(),
+                    style_cell={'textAlign': 'center'},
+                    style_table={ 'table-layout': 'fixed' }
+                ),          
+            ]
+        ),
+    ])
+
+@app.callback(
+    Output("div-loading", "children"),
+    Input("div-app", "loading_state")
+)
+def hide_loading_after_startup(loading_state):
+    if(loading_state is None):
+        return None
 
 @callback(
     Output('graph-post-signal-performance', 'figure'),
