@@ -216,11 +216,16 @@ app.layout = html.Div([
     ])
 
 @app.callback(
-    Output("div-loading", "children"),
-    Input("div-app", "loading_state")
+    Output('div-loading', 'children'),
+    [
+        Input('div-app', 'loading_state'),
+        Input('graph-rolling-3-month-high-and-dates', 'loading_state'),
+        Input('graph-post-signal-performance', 'loading_state'),
+        Input('graph-distribution-relative-performance', 'loading_state'),
+    ]
 )
-def hide_loading_after_startup(loading_state):
-    if(loading_state is None):
+def hide_loading_after_startup(*loading_states):            # *loading_states is a list of all the "loading_state" values of the Inputs above
+    if all(state is None for state in loading_states):
         return None
 
 @callback(
