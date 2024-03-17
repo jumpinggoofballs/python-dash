@@ -1,0 +1,4 @@
+cron:
+- description: "Restart app"
+  url: /_ah/restart
+  schedule: every day 04:00
