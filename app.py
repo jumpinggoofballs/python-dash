@@ -47,9 +47,9 @@ def frame_stats(source):
         'Mean': prettify_stats(frame.mean()),
         'Median': prettify_stats(frame.median()),
         'Range': prettify_stats(range(frame)),
-        'Standard Deviation': prettify_stats(frame.std()),
+        'Std. Dev.': prettify_stats(frame.std()),
         'Variance': prettify_stats(frame.var()),
-        'Mean Absolute Deviation': mad(frame).round(2),
+        # 'Mean Absolute Deviation': mad(frame).round(2),
     }
 
 # formatted data for the stats table 
