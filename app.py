@@ -7,6 +7,8 @@ import plotly.graph_objects as go
 import pandas as pd
 import numpy as np
 from tessa import price_history
+from apscheduler.schedulers.background import BackgroundScheduler
+from pytz import timezone
 
 ###
 # DEFINITIONS
@@ -68,73 +70,87 @@ def data_for_stats_table():
 # DATA
 ###
 
-# Get FTSE 100 and AZN stock price data
-df, _ = price_history("^FTSE")
-df = df.set_index(df.index.date)
+def get_data():
+    
+    # Define the global variables
+    global df, stock, derivedDFs, statsAtHorizons, signals
+    
+    # Get FTSE 100 and AZN stock price data
+    df, _ = price_history("^FTSE")
+    df = df.set_index(df.index.date)
 
-stock, _ = price_history("AZN")
-stock = stock.set_index(stock.index.date)
+    stock, _ = price_history("AZN")
+    stock = stock.set_index(stock.index.date)
 
-# Merge the two dataframes
-df['AZN'] = stock['close']
+    # Merge the two dataframes
+    df['AZN'] = stock['close']
 
-# Drop the last row of the dataframe (because it's today's data and it's incomplete)
-df = df.drop(df.tail(1).index)
+    # Drop the last row of the dataframe (because it's today's data and it's incomplete)
+    df = df.drop(df.tail(1).index)
 
-# Rename the columns
-df.columns = ['FTSE', 'AZN']
+    # Rename the columns
+    df.columns = ['FTSE', 'AZN']
 
-# Calculate the relative performance of the stock against the index
-df['AZN/FTSE'] = df['AZN'] / df['FTSE']
+    # Calculate the relative performance of the stock against the index
+    df['AZN/FTSE'] = df['AZN'] / df['FTSE']
 
-# Remove the rows where df['AZN/FTSE'] is NaN - dataset from the API seems incomplete
-df = df.dropna()
+    # Remove the rows where df['AZN/FTSE'] is NaN - dataset from the API seems incomplete
+    df = df.dropna()
 
-# Column which calculates the rolling 3 months high of the relative performance
-df['R3MH'] = df['AZN/FTSE'].rolling(MONTH*3).max() 
+    # Column which calculates the rolling 3 months high of the relative performance
+    df['R3MH'] = df['AZN/FTSE'].rolling(MONTH*3).max() 
 
-# Column identifying the dates when the rolling 3 months is touched by the relative performance
-df['R3MHTouched'] = df['AZN/FTSE'] == df['R3MH']
+    # Column identifying the dates when the rolling 3 months is touched by the relative performance
+    df['R3MHTouched'] = df['AZN/FTSE'] == df['R3MH']
 
-# For compatibility with the previous code, convert the index to a column
-df['Dates'] = df.index
+    # For compatibility with the previous code, convert the index to a column
+    df['Dates'] = df.index
 
-# Create an independent list with only the signals - excluding the last 6 months of data (so we do not have signals with incomplete data)
-signals = []
-i = 0
-while i < len(df) - MONTH*6:
-    if df['R3MHTouched'].iloc[i] == True:
-        signals.append(df['Dates'].iloc[i])
-        i += MONTH*4
-    else:
-        i += 1
+    # Create an independent list with only the signals - excluding the last 6 months of data (so we do not have signals with incomplete data)
+    signals = []
+    i = 0
+    while i < len(df) - MONTH*6:
+        if df['R3MHTouched'].iloc[i] == True:
+            signals.append(df['Dates'].iloc[i])
+            i += MONTH*4
+        else:
+            i += 1
 
-# Create a column in the dataframe which identifies the Signals
-df['Signals'] = df['Dates'].isin(signals)
+    # Create a column in the dataframe which identifies the Signals
+    df['Signals'] = df['Dates'].isin(signals)
 
-# Create a dataframe with the 6 months of data after each Signal
-derivedDFs = {}
-for date in signals:
-    frame = df[df['Dates'] >= date].iloc[:MONTH*6]
-    frame['PerformanceNormalised'] = normalise(frame['AZN/FTSE'])
-    derivedDFs[date] = frame
+    # Create a dataframe with the 6 months of data after each Signal
+    derivedDFs = {}
+    for date in signals:
+        frame = df[df['Dates'] >= date].iloc[:MONTH*6]
+        frame['PerformanceNormalised'] = normalise(frame['AZN/FTSE'])
+        derivedDFs[date] = frame
 
-# Create a dictionary with the statistics for each Signal
-statsAtHorizons = {
-    'M1': { 'data': [], 'stats': {}},
-    'M3': { 'data': [], 'stats': {}},
-    'M6': { 'data': [], 'stats': {}},
-}
-# / First get the relevant data
-for date in signals:
-    statsAtHorizons['M6']['data'].append(derivedDFs[date]['PerformanceNormalised'].iloc[-1])
-    statsAtHorizons['M3']['data'].append(derivedDFs[date]['PerformanceNormalised'].iloc[MONTH*3-1])
-    statsAtHorizons['M1']['data'].append(derivedDFs[date]['PerformanceNormalised'].iloc[MONTH-1])
+    # Create a dictionary with the statistics for each Signal
+    statsAtHorizons = {
+        'M1': { 'data': [], 'stats': {}},
+        'M3': { 'data': [], 'stats': {}},
+        'M6': { 'data': [], 'stats': {}},
+    }
+    # / First get the relevant data
+    for date in signals:
+        statsAtHorizons['M6']['data'].append(derivedDFs[date]['PerformanceNormalised'].iloc[-1])
+        statsAtHorizons['M3']['data'].append(derivedDFs[date]['PerformanceNormalised'].iloc[MONTH*3-1])
+        statsAtHorizons['M1']['data'].append(derivedDFs[date]['PerformanceNormalised'].iloc[MONTH-1])
 
-# / Then calculate the statistics
-for horizon, item in statsAtHorizons.items():
-    statsAtHorizons[horizon]['stats'] = frame_stats(item['data'])
+    # / Then calculate the statistics
+    for horizon, item in statsAtHorizons.items():
+        statsAtHorizons[horizon]['stats'] = frame_stats(item['data'])
 
+# Initial call to get the data
+get_data()
+
+# Initialize a BackgroundScheduler to fetch and process the data every 24 hours at 4am London time
+scheduler = BackgroundScheduler(timezone=timezone('Europe/London'))
+scheduler.add_job(func=get_data, trigger="cron", hour=4, minute=0)
+
+# Start the scheduler
+scheduler.start()
 
 ###
 # DASH APP

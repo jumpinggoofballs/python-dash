@@ -1,4 +1,5 @@
 appdirs==1.4.4
+APScheduler==3.10.4
 beautifulsoup4==4.12.3
 blinker==1.7.0
 certifi==2024.2.2
@@ -51,6 +52,7 @@ tessa==0.8.1
 time-machine==2.13.0
 typing_extensions==4.10.0
 tzdata==2024.1
+tzlocal==5.2
 Unidecode==1.3.8
 urllib3==2.2.1
 webencodings==0.5.1
