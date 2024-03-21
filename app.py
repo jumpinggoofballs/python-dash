@@ -308,5 +308,10 @@ def update_graph(clickData):
     return figure
 
 server = app.server
+
+@app.server.route('/_ah/warmup')
+def warmup():
+    return '', 200, {}
+
 if __name__ == '__main__':
     app.run(debug=True)

@@ -7,3 +7,5 @@ automatic_scaling:
   min_instances: 1
   max_instances: 1
 entrypoint: gunicorn -b 0.0.0.0:8080 app:server
+inbound_services:
+- warmup
