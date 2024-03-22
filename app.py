@@ -73,7 +73,7 @@ def data_for_stats_table():
 def get_data():
     
     # Define the global variables
-    global df, stock, derivedDFs, statsAtHorizons, signals
+    global df, signals, derivedDFs, statsAtHorizons
     
     # Get FTSE 100 and AZN stock price data
     df, _ = price_history("^FTSE")
@@ -167,6 +167,9 @@ load_figure_template('FLATLY')
 
 # Define the layout for the Dash app
 app.layout = html.Div([
+    
+        # dcc.Store to store  df, signals, statsAtHorizons
+        dcc.Store(id='store-data', data={'df': df.to_dict('records'), 'signals': signals, 'statsAtHorizons': statsAtHorizons }),
 
         html.Div(
             id="div-loading",
@@ -231,6 +234,7 @@ app.layout = html.Div([
         ),
     ])
 
+# callback to hide the loading spinner when all the graphs are loaded
 @app.callback(
     Output('div-loading', 'children'),
     [
@@ -244,11 +248,31 @@ def hide_loading_after_startup(*loading_states):            # *loading_states is
     if all(state is None for state in loading_states):
         return None
 
+# callback to redraw graph-rolling-3-month-high-and-dates when the data changes
+@app.callback(
+    Output('graph-rolling-3-month-high-and-dates', 'figure'),
+    Input('store-data', 'data')
+)
+def update_graph(data):
+    df = pd.DataFrame(data['df'])
+    figure = px.line(df, x='Dates', y=['AZN/FTSE', 'R3MH'])
+    figure.add_scatter(
+        x=df[df['Signals'] == True]['Dates'], 
+        y=df[df['Signals'] == True]['AZN/FTSE'], 
+        mode='markers', 
+        marker=dict(size=12), 
+        name='Signals'
+    )
+    return figure
+
 @callback(
     Output('graph-post-signal-performance', 'figure'),
-    Input('graph-post-signal-performance', 'clickData')
+    [
+        Input('graph-post-signal-performance', 'clickData'),
+        Input('store-data', 'data')
+    ]
 )
-def update_graph(clickData):
+def update_graph(*data):
     traces = []
 
     for date in signals:
@@ -280,9 +304,12 @@ def update_graph(clickData):
 
 @callback(
     Output('graph-distribution-relative-performance', 'figure'),
-    Input('graph-distribution-relative-performance', 'clickData')
+    [
+        Input('graph-distribution-relative-performance', 'clickData'),
+        Input('store-data', 'data')
+    ]
 )
-def update_graph(clickData):
+def update_graph(*data):
     traces = []
 
     for horizon, _ in statsAtHorizons.items():
@@ -307,8 +334,18 @@ def update_graph(clickData):
 
     return figure
 
+# callback to redraw table-stats-relative-performance when the data changes
+@app.callback(
+    Output('table-stats-relative-performance', 'data'),
+    Input('store-data', 'data')
+)
+def update_table(data):
+    return data_for_stats_table()
+
+# Export the server variable for Gunicorn
 server = app.server
 
+# Warmup function for Google App Engine
 @app.server.route('/_ah/warmup')
 def warmup():
     return '', 200, {}
