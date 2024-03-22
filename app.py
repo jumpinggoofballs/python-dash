@@ -248,31 +248,15 @@ def hide_loading_after_startup(*loading_states):            # *loading_states is
     if all(state is None for state in loading_states):
         return None
 
-# callback to redraw graph-rolling-3-month-high-and-dates when the data changes
-@app.callback(
-    Output('graph-rolling-3-month-high-and-dates', 'figure'),
-    Input('store-data', 'data')
-)
-def update_graph(data):
-    df = pd.DataFrame(data['df'])
-    figure = px.line(df, x='Dates', y=['AZN/FTSE', 'R3MH'])
-    figure.add_scatter(
-        x=df[df['Signals'] == True]['Dates'], 
-        y=df[df['Signals'] == True]['AZN/FTSE'], 
-        mode='markers', 
-        marker=dict(size=12), 
-        name='Signals'
-    )
-    return figure
-
+# callback to redraw graph-post-signal-performance when the data changes
 @callback(
     Output('graph-post-signal-performance', 'figure'),
     [
         Input('graph-post-signal-performance', 'clickData'),
-        Input('store-data', 'data')
+        # Input('store-data', 'data')
     ]
 )
-def update_graph(*data):
+def update_graph2(*data):
     traces = []
 
     for date in signals:
@@ -302,14 +286,15 @@ def update_graph(*data):
 
     return figure
 
+# callback to redraw graph-distribution-relative-performance when the data changes
 @callback(
     Output('graph-distribution-relative-performance', 'figure'),
     [
         Input('graph-distribution-relative-performance', 'clickData'),
-        Input('store-data', 'data')
+        # Input('store-data', 'data')
     ]
 )
-def update_graph(*data):
+def update_graph3(*data):
     traces = []
 
     for horizon, _ in statsAtHorizons.items():
@@ -339,8 +324,30 @@ def update_graph(*data):
     Output('table-stats-relative-performance', 'data'),
     Input('store-data', 'data')
 )
-def update_table(data):
+def update_table(*data):
     return data_for_stats_table()
+
+# callback to redraw graph-rolling-3-month-high-and-dates when the data changes
+@app.callback(
+    Output('graph-rolling-3-month-high-and-dates', 'figure'),
+    Input('store-data', 'data')
+)
+def update_graph1(data):
+    
+    # manually trigger callback to redraw graph-post-signal-performance, graph-distribution-relative-performance, table-stats-relative-performance
+    update_graph2()
+    update_graph3()
+    update_table()
+
+    figure = px.line(df, x='Dates', y=['AZN/FTSE', 'R3MH'])
+    figure.add_scatter(
+        x=df[df['Signals'] == True]['Dates'], 
+        y=df[df['Signals'] == True]['AZN/FTSE'], 
+        mode='markers', 
+        marker=dict(size=12), 
+        name='Signals'
+    )
+    return figure
 
 # Export the server variable for Gunicorn
 server = app.server
