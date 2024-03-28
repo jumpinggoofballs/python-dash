@@ -98,9 +98,6 @@ def get_data():
     # Merge the two dataframes
     df['AZN'] = stock['close']
 
-    # Drop the last row of the dataframe (because it's today's data and it's incomplete)
-    df = df.drop(df.tail(1).index)
-
     # Rename the columns
     df.columns = ['FTSE', 'AZN']
 
