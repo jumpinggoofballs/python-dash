@@ -14,12 +14,25 @@ from pytz import timezone
 # DEFINITIONS
 ###
 
+# Define the app
+# / With title
+appTitle = 'AstraZeneca share price performance against FTSE 100'
+app = Dash(
+        appTitle,
+        external_stylesheets=[dbc.themes.FLATLY]
+    )
+load_figure_template('FLATLY')
+
 # Definition of 1 month (in working days)
 MONTH = 22          
 
 ###
 # UTILITY FUNCTIONS
 ###
+
+# Set the layout of the Dash app
+def re_init_app():
+    app.layout = serve_layout()
 
 # Function to normalise a data series to 100
 def normalise(list):
@@ -142,31 +155,13 @@ def get_data():
     for horizon, item in statsAtHorizons.items():
         statsAtHorizons[horizon]['stats'] = frame_stats(item['data'])
 
-# Initial call to get the data
-get_data()
+# Define and serve the layout for the Dash app
+def serve_layout():
+    
+    # Initial call to get the data
+    get_data()
 
-# Initialize a BackgroundScheduler to fetch and process the data every 24 hours at 4am London time
-scheduler = BackgroundScheduler(timezone=timezone('Europe/London'))
-scheduler.add_job(func=get_data, trigger="cron", hour=4, minute=0)
-
-# Start the scheduler
-scheduler.start()
-
-###
-# DASH APP
-###
-
-# Define the app
-# / With title
-appTitle = 'AstraZeneca share price performance against FTSE 100'
-app = Dash(
-        appTitle,
-        external_stylesheets=[dbc.themes.FLATLY]
-    )
-load_figure_template('FLATLY')
-
-# Define the layout for the Dash app
-app.layout = html.Div([
+    return html.Div([
     
         # dcc.Store to store  df, signals, statsAtHorizons
         dcc.Store(id='store-data', data={'df': df.to_dict('records'), 'signals': signals, 'statsAtHorizons': statsAtHorizons }),
@@ -334,11 +329,6 @@ def update_table(*data):
 )
 def update_graph1(data):
     
-    # manually trigger callback to redraw graph-post-signal-performance, graph-distribution-relative-performance, table-stats-relative-performance
-    update_graph2()
-    update_graph3()
-    update_table()
-
     figure = px.line(df, x='Dates', y=['AZN/FTSE', 'R3MH'])
     figure.add_scatter(
         x=df[df['Signals'] == True]['Dates'], 
@@ -349,6 +339,27 @@ def update_graph1(data):
     )
     return figure
 
+###
+# MAIN
+###
+
+re_init_app()
+
+###
+# SCHEDULER
+###
+
+# Initialize a BackgroundScheduler to fetch and process the data every 24 hours at 4am London time
+scheduler = BackgroundScheduler(timezone=timezone('Europe/London'))
+scheduler.add_job(func=re_init_app, trigger="cron", hour=4, minute=0)
+
+# Start the scheduler
+scheduler.start()
+
+###
+#   GOOGLE APP ENGINE DEPLOYMENT
+###
+
 # Export the server variable for Gunicorn
 server = app.server
 
@@ -356,6 +367,10 @@ server = app.server
 @app.server.route('/_ah/warmup')
 def warmup():
     return '', 200, {}
+
+###
+#   LOCAL DEV
+###
 
 if __name__ == '__main__':
     app.run(debug=True)
