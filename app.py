@@ -246,12 +246,9 @@ def hide_loading_after_startup(*loading_states):            # *loading_states is
 # callback to redraw graph-post-signal-performance when the data changes
 @callback(
     Output('graph-post-signal-performance', 'figure'),
-    [
-        Input('graph-post-signal-performance', 'clickData'),
-        # Input('store-data', 'data')
-    ]
+    Input('graph-post-signal-performance', 'clickData'),
 )
-def update_graph2(*data):
+def update_graph(*data):
     traces = []
 
     for date in signals:
@@ -284,12 +281,9 @@ def update_graph2(*data):
 # callback to redraw graph-distribution-relative-performance when the data changes
 @callback(
     Output('graph-distribution-relative-performance', 'figure'),
-    [
-        Input('graph-distribution-relative-performance', 'clickData'),
-        # Input('store-data', 'data')
-    ]
+    Input('graph-distribution-relative-performance', 'clickData')
 )
-def update_graph3(*data):
+def update_graph(*data):
     traces = []
 
     for horizon, _ in statsAtHorizons.items():
@@ -312,31 +306,6 @@ def update_graph3(*data):
         margin=dict(l=30, r=30, t=30, b=30),
     )
 
-    return figure
-
-# callback to redraw table-stats-relative-performance when the data changes
-@app.callback(
-    Output('table-stats-relative-performance', 'data'),
-    Input('store-data', 'data')
-)
-def update_table(*data):
-    return data_for_stats_table()
-
-# callback to redraw graph-rolling-3-month-high-and-dates when the data changes
-@app.callback(
-    Output('graph-rolling-3-month-high-and-dates', 'figure'),
-    Input('store-data', 'data')
-)
-def update_graph1(data):
-    
-    figure = px.line(df, x='Dates', y=['AZN/FTSE', 'R3MH'])
-    figure.add_scatter(
-        x=df[df['Signals'] == True]['Dates'], 
-        y=df[df['Signals'] == True]['AZN/FTSE'], 
-        mode='markers', 
-        marker=dict(size=12), 
-        name='Signals'
-    )
     return figure
 
 ###
