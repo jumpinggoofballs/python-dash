@@ -30,7 +30,7 @@ MONTH = 22
 # UTILITY FUNCTIONS
 ###
 
-# Set the layout of the Dash app
+# (Re-)Set the layout of the Dash app
 def re_init_app():
     app.layout = serve_layout()
 
@@ -161,6 +161,87 @@ def serve_layout():
     # Initial call to get the data
     get_data()
 
+    ### CALLBACKS ###
+    # callback to hide the loading spinner when all the graphs are loaded
+    @app.callback(
+        Output('div-loading', 'children'),
+        [
+            Input('div-app', 'loading_state'),
+            Input('graph-rolling-3-month-high-and-dates', 'loading_state'),
+            Input('graph-post-signal-performance', 'loading_state'),
+            Input('graph-distribution-relative-performance', 'loading_state'),
+        ]
+    )
+    def hide_loading_after_startup(*loading_states):            # *loading_states is a list of all the "loading_state" values of the Inputs above
+        if all(state is None for state in loading_states):
+            return None
+
+    # callback to redraw graph-post-signal-performance when the data changes
+    @callback(
+        Output('graph-post-signal-performance', 'figure'),
+        Input('graph-post-signal-performance', 'clickData'),
+    )
+    def update_graph(*data):
+        traces = []
+
+        for date in signals:
+            x_data = derivedDFs[date].index - derivedDFs[date].index[0]
+            x_data = [int(x.days) for x in x_data]
+            y_data = derivedDFs[date]['PerformanceNormalised']
+
+            trace = go.Scatter(
+                x=x_data,
+                y=y_data,
+                name=date.strftime("%d-%m-%Y"),
+                mode='lines',
+            )
+            traces.append(trace)
+
+        figure = go.Figure(data=traces)
+
+        figure.update_layout(
+            xaxis_title='Days after Signal',
+            yaxis_title='Normalised Relative Performance',
+            xaxis_range=[0, MONTH*6-1],
+            margin=dict(l=30, r=30, t=30, b=30),
+        )
+        figure.add_vline(x=MONTH-1, annotation_text='1 Month', line_width=1)
+        figure.add_vline(x=MONTH*3-1, annotation_text='3 Months', line_width=1)
+        figure.add_vline(x=MONTH*6-1, annotation_text='6 Months', line_width=1)
+
+        return figure
+
+    # callback to redraw graph-distribution-relative-performance when the data changes
+    @callback(
+        Output('graph-distribution-relative-performance', 'figure'),
+        Input('graph-distribution-relative-performance', 'clickData')
+    )
+    def update_graph(*data):
+        traces = []
+
+        for horizon, _ in statsAtHorizons.items():
+            trace = go.Box(
+                y=statsAtHorizons[horizon]['data'],
+                name=horizon,
+                boxpoints='all',
+                jitter=0.5,
+                whiskerwidth=0.2,
+                marker_size=5,
+                line_width=1,
+            )
+            traces.append(trace)
+
+        figure = go.Figure(data=traces)
+
+        figure.update_layout(
+            xaxis_title='Horizon',
+            yaxis_title='Normalised Relative Performance',
+            margin=dict(l=30, r=30, t=30, b=30),
+        )
+
+        return figure
+
+    ### LAYOUT ###
     return html.Div([
     
         # dcc.Store to store  df, signals, statsAtHorizons
@@ -228,85 +309,6 @@ def serve_layout():
             ]
         ),
     ])
-
-# callback to hide the loading spinner when all the graphs are loaded
-@app.callback(
-    Output('div-loading', 'children'),
-    [
-        Input('div-app', 'loading_state'),
-        Input('graph-rolling-3-month-high-and-dates', 'loading_state'),
-        Input('graph-post-signal-performance', 'loading_state'),
-        Input('graph-distribution-relative-performance', 'loading_state'),
-    ]
-)
-def hide_loading_after_startup(*loading_states):            # *loading_states is a list of all the "loading_state" values of the Inputs above
-    if all(state is None for state in loading_states):
-        return None
-
-# callback to redraw graph-post-signal-performance when the data changes
-@callback(
-    Output('graph-post-signal-performance', 'figure'),
-    Input('graph-post-signal-performance', 'clickData'),
-)
-def update_graph(*data):
-    traces = []
-
-    for date in signals:
-        x_data = derivedDFs[date].index - derivedDFs[date].index[0]
-        x_data = [int(x.days) for x in x_data]
-        y_data = derivedDFs[date]['PerformanceNormalised']
-
-        trace = go.Scatter(
-            x=x_data,
-            y=y_data,
-            name=date.strftime("%d-%m-%Y"),
-            mode='lines',
-        )
-        traces.append(trace)
-
-    figure = go.Figure(data=traces)
-
-    figure.update_layout(
-        xaxis_title='Days after Signal',
-        yaxis_title='Normalised Relative Performance',
-        xaxis_range=[0, MONTH*6-1],
-        margin=dict(l=30, r=30, t=30, b=30),
-    )
-    figure.add_vline(x=MONTH-1, annotation_text='1 Month', line_width=1)
-    figure.add_vline(x=MONTH*3-1, annotation_text='3 Months', line_width=1)
-    figure.add_vline(x=MONTH*6-1, annotation_text='6 Months', line_width=1)
-
-    return figure
-
-# callback to redraw graph-distribution-relative-performance when the data changes
-@callback(
-    Output('graph-distribution-relative-performance', 'figure'),
-    Input('graph-distribution-relative-performance', 'clickData')
-)
-def update_graph(*data):
-    traces = []
-
-    for horizon, _ in statsAtHorizons.items():
-        trace = go.Box(
-            y=statsAtHorizons[horizon]['data'],
-            name=horizon,
-            boxpoints='all',
-            jitter=0.5,
-            whiskerwidth=0.2,
-            marker_size=5,
-            line_width=1,
-        )
-        traces.append(trace)
-
-    figure = go.Figure(data=traces)
-
-    figure.update_layout(
-        xaxis_title='Horizon',
-        yaxis_title='Normalised Relative Performance',
-        margin=dict(l=30, r=30, t=30, b=30),
-    )
-
-    return figure
 
 ###
 # MAIN
