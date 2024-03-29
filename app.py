@@ -315,9 +315,9 @@ re_init_app()
 # SCHEDULER
 ###
 
-# Initialize a BackgroundScheduler to fetch and process the data every 24 hours at 4am London time
+# Initialize a BackgroundScheduler to fetch and process the data every 24 hours at 18am London time (after the market closes)
 scheduler = BackgroundScheduler(timezone=timezone('Europe/London'))
-scheduler.add_job(func=re_init_app, trigger="cron", hour=4, minute=0)
+scheduler.add_job(func=re_init_app, trigger="cron", hour=18, minute=0)
 
 # Start the scheduler
 scheduler.start()
