@@ -7,12 +7,13 @@ import plotly.graph_objects as go
 import pandas as pd
 import numpy as np
 from tessa import price_history
-from apscheduler.schedulers.background import BackgroundScheduler
-from pytz import timezone
 
 ###
 # DEFINITIONS
 ###
+
+# Definition of 1 month (in working days)
+MONTH = 22          
 
 # Define the app
 # / With title
@@ -22,9 +23,6 @@ app = Dash(
         external_stylesheets=[dbc.themes.FLATLY]
     )
 load_figure_template('FLATLY')
-
-# Definition of 1 month (in working days)
-MONTH = 22          
 
 ###
 # UTILITY FUNCTIONS
@@ -312,17 +310,6 @@ def update_graph(*data):
 re_init_app()
 
 ###
-# SCHEDULER
-###
-
-# Initialize a BackgroundScheduler to fetch and process the data every 24 hours at 18am London time (after the market closes)
-scheduler = BackgroundScheduler(timezone=timezone('Europe/London'))
-scheduler.add_job(func=re_init_app, trigger="cron", hour=18, minute=0)
-
-# Start the scheduler
-scheduler.start()
-
-###
 #   GOOGLE APP ENGINE DEPLOYMENT
 ###
 
@@ -333,6 +320,12 @@ server = app.server
 @app.server.route('/_ah/warmup')
 def warmup():
     return '', 200, {}
+
+# Warmup function for Google App Engine
+@app.server.route('/_ah/refresh')
+def refresh():
+    re_init_app()
+    return 'App Refreshed', 200, {}
 
 ###
 #   LOCAL DEV
